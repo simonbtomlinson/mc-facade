@@ -8,7 +8,8 @@ use tokio::io::AsyncReadExt;
 #[derive(Debug, Eq, PartialEq)]
 pub enum Packet {
     Handshake(Handshake),
-    HandshakeRequest(HandshakeRequest)
+    HandshakeRequest(HandshakeRequest),
+    Ping(Ping)
 }
 
 pub async fn read<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<Packet, Box<dyn std::error::Error>> {
@@ -26,6 +27,7 @@ pub async fn read<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<Packet, Bo
             1 => Ok(Packet::HandshakeRequest(HandshakeRequest {})),
             _ => Ok(Packet::Handshake(Handshake::decode(&mut cursor)?))
         },
+        Ping::ID => Ok(Packet::Ping(Ping::decode(&mut cursor)?)),
         id => Err(format!("Unknown packet id {}", id).into())
     }
 }
@@ -55,6 +57,16 @@ async fn test_read_handshake_request() -> AsyncTestResult {
     Ok(())
 }
 
+
+#[tokio::test]
+async fn test_read_ping() -> AsyncTestResult {
+    let mut buf: Vec<u8> = vec![0x09, 0x01];
+    buf.extend_from_slice(&((123 as i64).to_be_bytes()));
+    let mut cursor = Cursor::new(&mut buf);
+    assert_eq!(Packet::Ping(Ping { payload: 123 }), read(&mut cursor).await?);
+    Ok(())
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct Handshake {
     protocol_version: i64,
@@ -63,18 +75,33 @@ pub struct Handshake {
     next_state: i64
 }
 
-// Minecraft sends a 0x00 empty request after the hanshake packet
-#[derive(Debug, Eq, PartialEq)]
-pub struct HandshakeRequest {}
-
 impl Handshake {
     const ID: i64 = 0x00;
     fn decode(source: &mut impl Read) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Handshake {
             protocol_version: atom::read_varint(source)?,
             server_address: atom::read_string(source)?,
-            server_port: atom::read_short(source)?,
+            server_port: atom::read_u16(source)?,
             next_state: atom::read_varint(source)?
+        })
+    }
+}
+
+// Minecraft sends a 0x00 empty request after the hanshake packet
+#[derive(Debug, Eq, PartialEq)]
+pub struct HandshakeRequest {}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct Ping {
+    payload: i64
+}
+
+impl Ping {
+    const ID: i64 = 0x01;
+
+    fn decode(source: &mut impl Read) -> Result<Self, Box<dyn std::error::Error>> {
+        Ok(Ping {
+            payload: atom::read_i64(source)?
         })
     }
 }

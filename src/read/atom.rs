@@ -101,15 +101,28 @@ fn test_read_string() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn read_short(source: &mut impl Read) -> Result<u16, Box<dyn Error>> {
+pub fn read_u16(source: &mut impl Read) -> Result<u16, Box<dyn Error>> {
     let mut buf = [0; 2];
     source.read(&mut buf)?;
     Ok(u16::from_be_bytes(buf))
 }
 
 #[test]
-fn test_read_short() -> Result<(), Box<dyn Error>> {
+fn test_read_u16() -> Result<(), Box<dyn Error>> {
     let mut buf: &[u8] = &(1 as u16).to_be_bytes();
-    assert_eq!(1, read_short(&mut buf)?);
+    assert_eq!(1, read_u16(&mut buf)?);
+    Ok(())
+}
+
+pub fn read_i64(source: &mut impl Read) -> Result<i64, Box<dyn Error>> {
+    let mut buf = [0; 8];
+    source.read(&mut buf)?;
+    Ok(i64::from_be_bytes(buf))
+}
+
+#[test]
+fn test_read_i64() -> Result<(), Box<dyn Error>> {
+    let mut buf: &[u8] = &(-1 as i64).to_be_bytes();
+    assert_eq!(-1, read_i64(&mut buf)?);
     Ok(())
 }
