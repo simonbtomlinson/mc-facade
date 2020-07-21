@@ -12,14 +12,14 @@ use tokio::io::{AsyncReadExt};
  * before parsing it, but we need to async read the number at the start of each packet that tells
  * us how long it is before we can read it into a byte buffer
  */
-pub async fn read_varint_async<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<i64, Box<dyn Error>> {
+pub async fn read_varint_async<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<i32, Box<dyn Error>> {
     let mut num_read: u64 = 0;
-    let mut result: i64 = 0;
+    let mut result: i32 = 0;
     let mut buf = [0; 1]; // 1 byte at a time
     loop {
         let _bytes_read = source.read_exact(&mut buf).await?;
         let byte = buf[0];
-        let value = (byte & 0b01111111) as i64;
+        let value = (byte & 0b01111111) as i32;
         result |= value << (7 * num_read);
         num_read += 1;
         if num_read > 5 {
@@ -33,14 +33,14 @@ pub async fn read_varint_async<S : AsyncReadExt + Unpin>(source: &mut S) -> Resu
 }
 
 
-pub fn read_varint(source: &mut impl Read) -> Result<i64, Box<dyn Error>> {
+pub fn read_varint(source: &mut impl Read) -> Result<i32, Box<dyn Error>> {
     let mut num_read: u64 = 0;
-    let mut result: i64 = 0;
+    let mut result: i32 = 0;
     let mut buf = [0; 1]; // 1 byte at a time
     loop {
         let _bytes_read = source.read_exact(&mut buf)?;
         let byte = buf[0];
-        let value = (byte & 0b01111111) as i64;
+        let value = (byte & 0b01111111) as i32;
         result |= value << (7 * num_read);
         num_read += 1;
         if num_read > 5 {
@@ -54,7 +54,7 @@ pub fn read_varint(source: &mut impl Read) -> Result<i64, Box<dyn Error>> {
 }
 
 #[cfg(test)]
-struct VarIntTestCase(i64, Vec<u8>);
+struct VarIntTestCase(i32, Vec<u8>);
 
 #[cfg(test)]
 fn cases() -> Vec<VarIntTestCase> {

@@ -8,7 +8,7 @@ use std::error::Error;
 use serde::Serialize;
 
 mod read;
-
+mod write;
 async fn handle_connection(mut socket: TcpStream) {
     let mut buf = [0; 1024];
     socket.read(&mut buf).await.expect("failed to read from socket");

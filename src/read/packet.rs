@@ -69,14 +69,14 @@ async fn test_read_ping() -> AsyncTestResult {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Handshake {
-    protocol_version: i64,
+    protocol_version: i32,
     server_address: String,
     server_port: u16,
-    next_state: i64
+    next_state: i32
 }
 
 impl Handshake {
-    const ID: i64 = 0x00;
+    const ID: i32 = 0x00;
     fn decode(source: &mut impl Read) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Handshake {
             protocol_version: atom::read_varint(source)?,
@@ -97,7 +97,7 @@ pub struct Ping {
 }
 
 impl Ping {
-    const ID: i64 = 0x01;
+    const ID: i32 = 0x01;
 
     fn decode(source: &mut impl Read) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Ping {
