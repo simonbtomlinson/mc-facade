@@ -7,7 +7,7 @@ use std::error::Error;
 
 use serde::Serialize;
 
-pub mod read;
+mod read;
 
 async fn handle_connection(mut socket: TcpStream) {
     let mut buf = [0; 1024];
