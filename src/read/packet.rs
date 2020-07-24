@@ -22,6 +22,7 @@ pub async fn read<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<Packet, Er
     let mut cursor = Cursor::new(buf);
 
     let packet_id = atom::read_varint(&mut cursor)?;
+    trace!("reading packet type {:#}", packet_id);
     match packet_id {
         Handshake::ID => match length {
             // Empty packet with 1-byte packet id has length 1 (for the packet id)
