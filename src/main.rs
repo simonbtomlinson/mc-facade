@@ -14,12 +14,12 @@ mod error;
 
 use read::packet::*;
 
-use write::packet::{write, Pong, HandshakeResponse};
+use write::packet::{write, Pong, HandshakeResponse, LoginDisconnect};
 
 async fn handle_connection(mut socket: TcpStream) -> Result<(), Error> {
     if let Packet::Handshake(handshake) = read(&mut socket).await? { // first a handshake
-        if handshake.next_state == 2 { // login request, we can't handle this yet
-            socket.shutdown(Shutdown::Both)?;
+        if handshake.next_state == 2 { // login request
+            write(&LoginDisconnect { reason: "Starting the real server, this could take a bit" }, &mut socket).await?;
         }
         // Then a request for a response (no idea why these aren't the same)
         if let Packet::HandshakeRequest(handshake_request) = read(&mut socket).await? {

@@ -90,3 +90,17 @@ impl Packet for Pong {
         Ok(())
     }
 }
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct LoginDisconnect<'a> {
+    pub reason: &'a str
+}
+
+impl<'a> Packet for LoginDisconnect<'a> {
+    const ID: i32 = 0x00;
+    fn write_to(&self, sink: &mut impl Write) -> Result<(), Error> {
+        let json = format!(r#"{{ "text": "{reason}" }}"#, reason=self.reason);
+        atom::write_string(&json, sink)?;
+        Ok(())
+    }
+}
