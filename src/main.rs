@@ -6,7 +6,6 @@ use std::env;
 use crate::error::Error;
 use std::net::Shutdown;
 
-use serde::Serialize;
 
 mod read;
 mod write;
