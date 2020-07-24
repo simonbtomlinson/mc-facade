@@ -1,9 +1,10 @@
 use std::{i64};
-use std::error::Error;
+use crate::error::Error;
 use std::io::Write;
 use tokio::io::AsyncWriteExt;
+use std::convert::TryInto;
 
-pub fn write_varint(value: i32, sink: &mut impl Write) -> Result<(), Box<dyn Error>> {
+pub fn write_varint(value: i32, sink: &mut impl Write) -> Result<(), Error> {
     // reinterpret the bytes of the value as unsigned so the sign bit shifts along without
     // extension if negative
     let mut value = value as u32;
@@ -26,7 +27,7 @@ pub fn write_varint(value: i32, sink: &mut impl Write) -> Result<(), Box<dyn Err
     Ok(())
 }
 
-pub async fn write_varint_async<W : AsyncWriteExt + Unpin>(value: i32, sink: &mut W) -> Result<(), Box<dyn Error>> {
+pub async fn write_varint_async<W : AsyncWriteExt + Unpin>(value: i32, sink: &mut W) -> Result<(), Error> {
     // reinterpret the bytes of the value as unsigned so the sign bit shifts along without
     // extension if negative
     let mut value = value as u32;
@@ -37,7 +38,6 @@ pub async fn write_varint_async<W : AsyncWriteExt + Unpin>(value: i32, sink: &mu
         if value != 0 {
             temp |= 0b10000000;
         }
-        eprintln!("Value: {:#}, temp: {:#}", value, temp);
         sink.write_all(&[temp]).await?;
         if value == 0 {
             break;
@@ -51,7 +51,7 @@ pub async fn write_varint_async<W : AsyncWriteExt + Unpin>(value: i32, sink: &mu
 }
 
 #[test]
-fn test_write_varint() -> Result<(), Box<dyn Error>> {
+fn test_write_varint() -> Result<(), Error> {
     use std::io::{SeekFrom, Seek, Cursor};
     for i in [i32::MIN, -1, 0, 1, 2, 1000, 100_000, i32::MAX].iter() {
         let mut cursor = Cursor::new(vec![0; 5]); // varints are at most 5 bytes
@@ -63,7 +63,7 @@ fn test_write_varint() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn test_write_varint_async() -> Result<(), Box<dyn Error>> {
+async fn test_write_varint_async() -> Result<(), Error> {
     use std::io::{SeekFrom, Seek, Cursor};
     for i in [i32::MIN, -1, 0, 1, 2, 1000, 100_000, i32::MAX].iter() {
         let mut cursor = Cursor::new(vec![0; 5]); // varints are at most 5 bytes
@@ -74,6 +74,12 @@ async fn test_write_varint_async() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn write_i64(value: i64, sink: &mut impl Write) -> Result<(), Box<dyn Error>> {
+pub fn write_i64(value: i64, sink: &mut impl Write) -> Result<(), Error> {
     Ok(sink.write_all(&value.to_be_bytes())?)
+}
+
+pub fn write_string(value: &str, sink: &mut impl Write) -> Result<(), Error> {
+    write_varint(value.len().try_into()?, sink)?;
+    sink.write_all(value.as_bytes())?;
+    Ok(())
 }

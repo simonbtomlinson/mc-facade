@@ -1,5 +1,6 @@
 
 use super::atom;
+use crate::error::Error;
 
 use std::io::{Read, Cursor};
 
@@ -12,7 +13,7 @@ pub enum Packet {
     Ping(Ping)
 }
 
-pub async fn read<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<Packet, Box<dyn std::error::Error>> {
+pub async fn read<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<Packet, Error> {
     let length = atom::read_varint_async(source).await? as usize;
     let mut buf = vec![0; length];
     if length > 0 {
@@ -33,7 +34,7 @@ pub async fn read<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<Packet, Bo
 }
 
 #[cfg(test)]
-type AsyncTestResult = Result<(), Box<dyn std::error::Error>>;
+type AsyncTestResult = Result<(), Error>;
 
 #[tokio::test]
 async fn test_read_handshake() -> AsyncTestResult {
@@ -69,15 +70,15 @@ async fn test_read_ping() -> AsyncTestResult {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Handshake {
-    protocol_version: i32,
-    server_address: String,
-    server_port: u16,
-    next_state: i32
+    pub protocol_version: i32,
+    pub server_address: String,
+    pub server_port: u16,
+    pub next_state: i32
 }
 
 impl Handshake {
     const ID: i32 = 0x00;
-    fn decode(source: &mut impl Read) -> Result<Self, Box<dyn std::error::Error>> {
+    fn decode(source: &mut impl Read) -> Result<Self, Error> {
         Ok(Handshake {
             protocol_version: atom::read_varint(source)?,
             server_address: atom::read_string(source)?,
@@ -93,13 +94,13 @@ pub struct HandshakeRequest {}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Ping {
-    payload: i64
+    pub payload: i64
 }
 
 impl Ping {
     const ID: i32 = 0x01;
 
-    fn decode(source: &mut impl Read) -> Result<Self, Box<dyn std::error::Error>> {
+    fn decode(source: &mut impl Read) -> Result<Self, Error> {
         Ok(Ping {
             payload: atom::read_i64(source)?
         })

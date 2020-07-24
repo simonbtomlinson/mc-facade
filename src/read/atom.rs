@@ -1,8 +1,6 @@
-use std::{u16, str};
-use std::error::Error;
-use std::io::prelude::*;
+use std::{u16, str, io::Read};
 use tokio::io::{AsyncReadExt};
-
+use crate::error::Error;
 /*
  * By "atom", I mean an individual part of a minecraft packet, such as an int, varint, or string.
  */
@@ -12,7 +10,7 @@ use tokio::io::{AsyncReadExt};
  * before parsing it, but we need to async read the number at the start of each packet that tells
  * us how long it is before we can read it into a byte buffer
  */
-pub async fn read_varint_async<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<i32, Box<dyn Error>> {
+pub async fn read_varint_async<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<i32, Error> {
     let mut num_read: u64 = 0;
     let mut result: i32 = 0;
     let mut buf = [0; 1]; // 1 byte at a time
@@ -23,7 +21,7 @@ pub async fn read_varint_async<S : AsyncReadExt + Unpin>(source: &mut S) -> Resu
         result |= value << (7 * num_read);
         num_read += 1;
         if num_read > 5 {
-            return Err("VarInt is too big".to_string().into());
+            return Err("VarInt is too big".into());
         }
         if byte & 0b10000000 == 0 {
             break;
@@ -33,7 +31,7 @@ pub async fn read_varint_async<S : AsyncReadExt + Unpin>(source: &mut S) -> Resu
 }
 
 
-pub fn read_varint(source: &mut impl Read) -> Result<i32, Box<dyn Error>> {
+pub fn read_varint(source: &mut impl Read) -> Result<i32, Error> {
     let mut num_read: u64 = 0;
     let mut result: i32 = 0;
     let mut buf = [0; 1]; // 1 byte at a time
@@ -44,7 +42,7 @@ pub fn read_varint(source: &mut impl Read) -> Result<i32, Box<dyn Error>> {
         result |= value << (7 * num_read);
         num_read += 1;
         if num_read > 5 {
-            return Err("VarInt is too big".to_string().into());
+            return Err("VarInt is too big".into());
         }
         if byte & 0b10000000 == 0 {
             break;
@@ -67,7 +65,7 @@ fn cases() -> Vec<VarIntTestCase> {
 }
 
 #[tokio::test]
-async fn test_read_varint_async() -> Result<(), Box<dyn Error>> {
+async fn test_read_varint_async() -> Result<(), Error> {
     use std::io::Cursor;
     for case in cases() {
         let mut buf = Cursor::new(case.1);
@@ -76,7 +74,7 @@ async fn test_read_varint_async() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 #[test]
-fn test_read_varint() -> Result<(), Box<dyn Error>> {
+fn test_read_varint() -> Result<(), Error> {
     use std::io::Cursor;
     for case in cases() {
         let mut buf = Cursor::new(case.1);
@@ -87,7 +85,7 @@ fn test_read_varint() -> Result<(), Box<dyn Error>> {
 
 
 
-pub fn read_string(source: &mut impl Read) -> Result<String, Box<dyn Error>> {
+pub fn read_string(source: &mut impl Read) -> Result<String, Error> {
     let size = read_varint(source)? as usize;
     let mut buf: Vec<u8> = vec![0; size];
     source.read_exact(&mut buf)?;
@@ -95,33 +93,33 @@ pub fn read_string(source: &mut impl Read) -> Result<String, Box<dyn Error>> {
 }
 
 #[test]
-fn test_read_string() -> Result<(), Box<dyn Error>> {
+fn test_read_string() -> Result<(), Error> {
     let mut buf: &[u8] = &[0x02, 0x48, 0x49]; // Varint<2>, Utf8<H>, Utf8<I>
     assert_eq!("HI", read_string(&mut buf)?);
     Ok(())
 }
 
-pub fn read_u16(source: &mut impl Read) -> Result<u16, Box<dyn Error>> {
+pub fn read_u16(source: &mut impl Read) -> Result<u16, Error> {
     let mut buf = [0; 2];
     source.read(&mut buf)?;
     Ok(u16::from_be_bytes(buf))
 }
 
 #[test]
-fn test_read_u16() -> Result<(), Box<dyn Error>> {
+fn test_read_u16() -> Result<(), Error> {
     let mut buf: &[u8] = &(1 as u16).to_be_bytes();
     assert_eq!(1, read_u16(&mut buf)?);
     Ok(())
 }
 
-pub fn read_i64(source: &mut impl Read) -> Result<i64, Box<dyn Error>> {
+pub fn read_i64(source: &mut impl Read) -> Result<i64, Error> {
     let mut buf = [0; 8];
     source.read(&mut buf)?;
     Ok(i64::from_be_bytes(buf))
 }
 
 #[test]
-fn test_read_i64() -> Result<(), Box<dyn Error>> {
+fn test_read_i64() -> Result<(), Error> {
     let mut buf: &[u8] = &(-1 as i64).to_be_bytes();
     assert_eq!(-1, read_i64(&mut buf)?);
     Ok(())

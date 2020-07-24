@@ -2,14 +2,15 @@ use super::atom;
 use std::io::Write;
 use tokio::io::AsyncWriteExt;
 use std::convert::TryInto;
+use crate::error::Error;
 
 pub trait Packet {
     const ID: i32;
-    fn write_to(&self, sink: &mut impl Write) -> Result<(), Box<dyn std::error::Error>>;
+    fn write_to(&self, sink: &mut impl Write) -> Result<(), Error>;
 }
 
 
-pub async fn write<P : Packet, W: AsyncWriteExt + Unpin>(packet: &P, dest: &mut W) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn write<P : Packet, W: AsyncWriteExt + Unpin>(packet: &P, dest: &mut W) -> Result<(), Error> {
     let mut buf = vec![];
     atom::write_varint(P::ID, &mut buf)?; // Every packet has an ID so write it for the packet
     packet.write_to(&mut buf)?;
@@ -22,7 +23,7 @@ pub async fn write<P : Packet, W: AsyncWriteExt + Unpin>(packet: &P, dest: &mut 
 }
 
 #[tokio::test]
-async fn test_write_packet() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_write_packet() -> Result<(), Error> {
     let packet = Pong { payload: 12345 };
     let mut size_buf = vec![];
     atom::write_varint(HandshakeResponse::ID, &mut size_buf)?;
@@ -38,11 +39,40 @@ async fn test_write_packet() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct HandshakeResponse {}
+pub struct HandshakeResponse {
+    pub version_name: String,
+    pub protocol: i32,
+    pub max_players: u32,
+    pub online_players: u32,
+    pub description: String
+}
 
 impl Packet for HandshakeResponse {
     const ID: i32 = 0x00;
-    fn write_to(&self, sink: &mut impl Write) -> Result<(), Box<dyn std::error::Error>> {
+    fn write_to(&self, sink: &mut impl Write) -> Result<(), Error> {
+        // This is the only place I need to make json so I don't really need something as
+        // heavyweight as serde for this.
+        let json = format!(r#"{{
+            "version": {{
+                "name": "{version_name}",
+                "protocol": {protocol}
+            }},
+            "players": {{
+                "max": {max_players},
+                "online": {online_players},
+                "sample": []
+            }},
+            "description": {{
+                "text": "{description}"
+            }}
+        }}"#,
+                version_name=self.version_name,
+                protocol=self.protocol,
+                max_players=self.max_players,
+                online_players=self.online_players,
+                description=self.description
+        );
+        atom::write_string(&json, sink)?;
         Ok(())
     }
 }
@@ -50,12 +80,12 @@ impl Packet for HandshakeResponse {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Pong {
-    payload: i64
+    pub payload: i64
 }
 
 impl Packet for Pong {
     const ID: i32 = 0x01;
-    fn write_to(&self, sink: &mut impl Write) -> Result<(), Box<dyn std::error::Error>> {
+    fn write_to(&self, sink: &mut impl Write) -> Result<(), Error> {
         atom::write_i64(self.payload, sink)?;
         Ok(())
     }
