@@ -6,6 +6,8 @@ use crate::fake_server::run_fake_server;
 
 #[macro_use]
 extern crate log;
+
+mod util;
 mod read;
 mod write;
 mod error;

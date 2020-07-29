@@ -1,12 +1,12 @@
 
 use tokio::net::{TcpListener, TcpStream};
-use tokio::time::timeout;
+use tokio::time::{timeout, delay_for};
 use crate::error::Error;
 
 use crate::read::packet::*;
 
 use crate::write::packet::{write, Pong, HandshakeResponse, LoginDisconnect};
-
+use crate::util::race::{race, RaceResult};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -51,28 +51,23 @@ pub async fn run_fake_server(addr: &str) -> Result<(), Error> {
     let should_start_server = Arc::new(AtomicBool::new(false));
     let mut listener = TcpListener::bind(&addr).await?;
     while should_start_server.load(Ordering::Relaxed) == false {
-        // We want to cancel this future if a different connection has done a login -> request real
-        // server flow, but there's not an equivalent of something like Promise.race() that I can
-        // find in tokio, (which could race a channel against the listener future)
-        let listener_future = listener.accept();
-        if let Ok(listener_result) = timeout(Duration::from_millis(50), listener_future).await {
-            debug!("Got a socket connection");
-            let (socket, _) = listener_result?;
-            let should_start_server = should_start_server.clone();
-            tokio::spawn(async move {
-                if should_start_server.load(Ordering::Relaxed) == true {
-                    return;
-                }
-                match handle_connection(socket).await {
-                    Ok(ConnectionResult::Login) => {
-                        info!("Finished a login");
-                        should_start_server.store(true, Ordering::Relaxed);
-                    },
-                    Ok(ConnectionResult::ServerListPing) => info!("Finished a server list ping"),
-                    Err(e) => error!("{}", e)
-                }
-            });
-
+        match race(listener.accept(), delay_for(Duration::from_secs(3))).await {
+            RaceResult::Left(listener_result) => {
+                debug!("Got a socket connection");
+                let (socket, _) = listener_result?;
+                let should_start_server = should_start_server.clone();
+                tokio::spawn(async move {
+                    match handle_connection(socket).await {
+                        Ok(ConnectionResult::Login) => {
+                            info!("Finished a login");
+                            should_start_server.store(true, Ordering::Relaxed);
+                        },
+                        Ok(ConnectionResult::ServerListPing) => info!("Finished a server list ping"),
+                        Err(e) => error!("{}", e)
+                    }
+                });
+            },
+            RaceResult::Right(_) => info!("Timeout"),
         }
     }
     Ok(())

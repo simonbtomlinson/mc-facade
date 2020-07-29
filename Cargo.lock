@@ -150,6 +150,7 @@ dependencies = [
  "bytes",
  "env_logger",
  "log",
+ "pin-project-lite",
  "tokio",
 ]
 
