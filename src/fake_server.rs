@@ -24,7 +24,7 @@ async fn handle_connection(mut socket: TcpStream) -> Result<ConnectionResult, Er
         }
         debug!("packet is a server list ping packet");
         // Then a request for a response (no idea why these aren't the same)
-        if let Packet::HandshakeRequest(handshake_request) = read(&mut socket).await? {
+        if let Packet::HandshakeRequest(_handshake_request) = read(&mut socket).await? {
             write(&HandshakeResponse {
                 protocol: handshake.protocol_version,
                 version_name: "test".to_owned(), // Need to fake this based on the request
