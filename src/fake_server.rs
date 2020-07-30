@@ -1,15 +1,12 @@
 
 use tokio::net::{TcpListener, TcpStream};
-use tokio::time::{timeout, delay_for};
+use tokio::sync::broadcast;
 use crate::error::Error;
 
 use crate::read::packet::*;
 
 use crate::write::packet::{write, Pong, HandshakeResponse, LoginDisconnect};
 use crate::util::race::{race, RaceResult};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 
 enum ConnectionResult {
     Login,
@@ -48,27 +45,35 @@ async fn handle_connection(mut socket: TcpStream) -> Result<ConnectionResult, Er
 
 /// Run a fake server until someone logs in
 pub async fn run_fake_server(addr: &str) -> Result<(), Error> {
-    let should_start_server = Arc::new(AtomicBool::new(false));
     let mut listener = TcpListener::bind(&addr).await?;
-    while should_start_server.load(Ordering::Relaxed) == false {
-        match race(listener.accept(), delay_for(Duration::from_secs(3))).await {
+    let (tx, rx1) = broadcast::channel::<()>(1); // Only ever going to be 1 value
+    // it would probably be better to use this rather than spawn new ones, but that's more complex.
+    // we also want to drop it so that the sender doesn't have to give it messages ever
+    std::mem::drop(rx1); 
+    info!("Listening on {}", addr);
+    loop {
+        match race(listener.accept(), tx.subscribe().recv()).await {
             RaceResult::Left(listener_result) => {
                 debug!("Got a socket connection");
                 let (socket, _) = listener_result?;
-                let should_start_server = should_start_server.clone();
+                let tx = tx.clone();
                 tokio::spawn(async move {
                     match handle_connection(socket).await {
                         Ok(ConnectionResult::Login) => {
                             info!("Finished a login");
-                            should_start_server.store(true, Ordering::Relaxed);
+                            tx.send(()).unwrap();
                         },
                         Ok(ConnectionResult::ServerListPing) => info!("Finished a server list ping"),
                         Err(e) => error!("{}", e)
                     }
                 });
             },
-            RaceResult::Right(_) => info!("Timeout"),
+            RaceResult::Right(_) => {
+                debug!("Got a shutdown request");
+                break;
+            },
         }
     }
+    info!("Shutting down server");
     Ok(())
 }
