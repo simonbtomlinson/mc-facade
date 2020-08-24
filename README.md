@@ -1,0 +1,3 @@
+A tcp server implementing enough of Minecraft's wire protocol to accept a connection and immediately kick the player.
+
+Still a work-in-progress, but the idea is to run this on a very inexpensive cloud vm, then when someone tries to log in, spin up a beefier VM with a real copy of a server, and switch the IP to that server until everyone logs off, at which point that server would shut down to save money and this one would start back up.
