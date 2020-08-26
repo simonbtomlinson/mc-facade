@@ -3,9 +3,9 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::broadcast;
 use crate::error::Error;
 
-use crate::read::packet::*;
+use super::read::packet::*;
 
-use crate::write::packet::{write, Pong, HandshakeResponse, LoginDisconnect};
+use super::write::packet::{write, Pong, HandshakeResponse, LoginDisconnect};
 use crate::util::race::{race, RaceResult};
 
 enum ConnectionResult {

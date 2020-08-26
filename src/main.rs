@@ -1,16 +1,14 @@
 
 use std::env;
 use crate::error::Error;
-use crate::fake_server::run_fake_server;
+use crate::server::fake_server::run_fake_server;
 
 #[macro_use]
 extern crate log;
 
 mod util;
-mod read;
-mod write;
 mod error;
-mod fake_server;
+mod server;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {

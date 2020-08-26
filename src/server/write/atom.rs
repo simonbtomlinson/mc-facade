@@ -33,7 +33,7 @@ fn test_write_varint() -> Result<(), Error> {
         let mut cursor = Cursor::new(vec![0; 5]); // varints are at most 5 bytes
         write_varint(*i, &mut cursor)?;
         cursor.seek(SeekFrom::Start(0))?;
-        assert_eq!(*i, crate::read::atom::read_varint(&mut cursor)?);
+        assert_eq!(*i, crate::server::read::atom::read_varint(&mut cursor)?);
     }
     Ok(())
 }
