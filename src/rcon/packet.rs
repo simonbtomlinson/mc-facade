@@ -12,6 +12,7 @@ pub enum PacketType {
     Login = 3,
     Command = 2,
     MultiPacketResponse = 0,
+    Invalid = 123, // Used on purpose as a follow-up to other packets to delimit multi-packet responses
 }
 
 impl TryFrom<i32> for PacketType {
@@ -28,16 +29,26 @@ impl TryFrom<i32> for PacketType {
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct Packet {
-    request_id: i32,
-    packet_type: PacketType,
-    payload: String, // ASCII characters
+    pub request_id: i32,
+    pub packet_type: PacketType,
+    pub payload: String, // ASCII characters
 }
 
 impl Packet {
+    pub fn new(request_id: i32, packet_type: PacketType, payload: String) -> Result<Self, Error> {
+        if payload.chars().any(|c| !c.is_ascii()) {
+            return Err("payload contains a non-ascii character".into());
+        }
+        Ok(Packet {
+            request_id,
+            packet_type,
+            payload,
+        })
+    }
     fn parse(packet_bytes: &[u8]) -> Result<Self, Error> {
         let (req_id_bytes, packet_bytes) = packet_bytes.split_at(I32_SIZE);
         let request_id = i32::from_le_bytes(req_id_bytes.try_into()?);
-        
+
         let (packet_type_bytes, packet_bytes) = packet_bytes.split_at(I32_SIZE);
         let packet_type = i32::from_le_bytes(packet_type_bytes.try_into()?).try_into()?;
 
@@ -102,7 +113,7 @@ mod tests {
     use crate::error::Error;
 
     type TestResult = Result<(), Error>;
-    
+
     #[test]
     fn test_parse_packet() -> TestResult {
         let mut raw_packet: Vec<u8> = vec![];
@@ -124,7 +135,11 @@ mod tests {
 
     #[test]
     fn test_serialize_packet() -> TestResult {
-        let packet = Packet { request_id: -5, packet_type: PacketType::Login, payload: "this would be a password".into() };
+        let packet = Packet {
+            request_id: -5,
+            packet_type: PacketType::Login,
+            payload: "this would be a password".into(),
+        };
         let packet_bytes_with_len = packet.serialize();
         // The parse doesn't expect a length
         let deserialized_packet = Packet::parse(&packet_bytes_with_len[I32_SIZE..])?;
