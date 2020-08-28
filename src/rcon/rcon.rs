@@ -68,11 +68,14 @@ impl<S: AsyncReadExt + AsyncWriteExt + Unpin> Connection<S> {
     }
 
     async fn send_packet(&mut self, packet: &Packet) -> Result<(), Error> {
+        trace!("Sending packet id {}", packet.request_id);
         Ok(write(packet, &mut self.stream).await?)
     }
 
     async fn receive_packet(&mut self) -> Result<Packet, Error> {
-        Ok(read(&mut self.stream).await?)
+        let packet = read(&mut self.stream).await?;
+        trace!("Received packet id {}", packet.request_id);
+        Ok(packet)
     }
 
     fn gen_request_id(&mut self) -> i32 {
