@@ -8,7 +8,7 @@ use tokio::io::AsyncReadExt;
 use crate::error::Error;
 
 #[derive(PartialEq, Eq, Debug)]
-enum PacketType {
+pub enum PacketType {
     Login = 3,
     Command = 2,
     MultiPacketResponse = 0,
@@ -27,7 +27,7 @@ impl TryFrom<i32> for PacketType {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-struct Packet {
+pub struct Packet {
     id: i32,
     packet_type: PacketType,
     payload: String, // ASCII characters
@@ -41,7 +41,7 @@ async fn read_int<S: AsyncReadExt + Unpin>(source: &mut S) -> Result<i32, Error>
 
 const I32_SIZE: usize = mem::size_of::<i32>(); // Always 4 but nice to specify it
 
-async fn read<S: AsyncReadExt + Unpin>(source: &mut S) -> Result<Packet, Error> {
+pub async fn read<S: AsyncReadExt + Unpin>(source: &mut S) -> Result<Packet, Error> {
     let length: i32 = read_int(source).await?;
     let mut raw_packet = vec![0; length as usize];
 
