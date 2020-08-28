@@ -62,7 +62,7 @@ impl<S: AsyncReadExt + AsyncWriteExt + Unpin> Connection<S> {
         let response = self.receive_packet().await?;
         match response.request_id {
             id if id == request_id => Ok(()),
-            -1 => Err("Login failure".into()),
+            -1 => Err("Invalid RCon password".into()),
             other_id => Err(format!("Unknown response packet with id {}", other_id).into()),
         }
     }
@@ -101,6 +101,18 @@ mod tests {
         write(&login_response, &mut conn.stream.input).await?;
         conn.stream.input.set_position(0);
         conn.login("password".into()).await?; // Would error if the login failed
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_bad_password_login() -> Result<(), Error> {
+         let mut conn = fake_connection();
+        let login_response =
+            Packet::new(-1, PacketType::Login, "".into())?;
+        write(&login_response, &mut conn.stream.input).await?;
+        conn.stream.input.set_position(0);
+        let login_result = conn.login("password".into()).await;
+        assert!(login_result.is_err()); // TODO: This could be a more general error but error handling is bad right now
         Ok(())
     }
 
