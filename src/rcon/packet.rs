@@ -93,16 +93,19 @@ async fn read_int<S: AsyncReadExt + Unpin>(source: &mut S) -> Result<i32, Error>
 const I32_SIZE: usize = mem::size_of::<i32>(); // Always 4 but nice to specify it
 
 pub async fn read<S: AsyncReadExt + Unpin>(source: &mut S) -> Result<Packet, Error> {
+    debug!("Reading rcon packet");
     let length: i32 = read_int(source).await?;
+    trace!("packet length {}", length);
     let mut raw_packet = vec![0; length as usize];
 
     source.read_exact(&mut raw_packet).await?;
     let packet_bytes = &raw_packet[..];
-
+    trace!("parsing");
     Packet::parse(&packet_bytes)
 }
 
 pub async fn write<W: AsyncWriteExt + Unpin>(packet: &Packet, dest: &mut W) -> Result<(), Error> {
+    debug!("writing rcon packet {:?}", packet);
     let data = packet.serialize();
     Ok(dest.write_all(&data).await?)
 }
