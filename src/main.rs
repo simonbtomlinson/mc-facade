@@ -9,7 +9,7 @@ extern crate log;
 mod util;
 mod error;
 mod server;
-
+mod rcon;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     env_logger::init();
