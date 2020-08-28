@@ -1,14 +1,16 @@
+use pin_project_lite::pin_project;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use pin_project_lite::pin_project;
 
 pub enum RaceResult<U, V>
-where U : Future, V : Future {
+where
+    U: Future,
+    V: Future,
+{
     Left(U::Output),
-    Right(V::Output)
+    Right(V::Output),
 }
-
 
 pin_project! {
     pub struct RaceFuture<U, V>
@@ -22,7 +24,9 @@ pin_project! {
 }
 
 impl<U, V> Future for RaceFuture<U, V>
-where U : Future, V: Future
+where
+    U: Future,
+    V: Future,
 {
     type Output = RaceResult<U, V>;
 
@@ -46,9 +50,9 @@ pub fn race<U: Future, V: Future>(left: U, right: V) -> RaceFuture<U, V> {
 
 #[cfg(test)]
 mod tests {
-    use tokio::time::delay_for;
-    use std::time::Duration;
     use super::*;
+    use std::time::Duration;
+    use tokio::time::delay_for;
 
     #[tokio::test]
     async fn test_race_left() {
@@ -57,7 +61,7 @@ mod tests {
         let result = race(left, right).await;
         match result {
             RaceResult::Left(_) => (),
-            RaceResult::Right(_) => panic!("Expected left side to win the race")
+            RaceResult::Right(_) => panic!("Expected left side to win the race"),
         }
     }
 
@@ -69,7 +73,7 @@ mod tests {
         tokio::spawn(async move { tx2.send(1) });
         match race(rx1, rx2).await {
             RaceResult::Left(_) => panic!("expected right side to win the race"),
-            RaceResult::Right(n) => assert_eq!(n, Ok(1))
+            RaceResult::Right(n) => assert_eq!(n, Ok(1)),
         }
     }
 }

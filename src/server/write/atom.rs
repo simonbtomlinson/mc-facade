@@ -1,7 +1,7 @@
-use std::{i64};
 use crate::error::Error;
-use std::io::Write;
 use std::convert::TryInto;
+use std::i64;
+use std::io::Write;
 
 pub fn write_varint(value: i32, sink: &mut impl Write) -> Result<(), Error> {
     // reinterpret the bytes of the value as unsigned so the sign bit shifts along without
@@ -28,7 +28,7 @@ pub fn write_varint(value: i32, sink: &mut impl Write) -> Result<(), Error> {
 
 #[test]
 fn test_write_varint() -> Result<(), Error> {
-    use std::io::{SeekFrom, Seek, Cursor};
+    use std::io::{Cursor, Seek, SeekFrom};
     for i in [i32::MIN, -1, 0, 1, 2, 1000, 100_000, i32::MAX].iter() {
         let mut cursor = Cursor::new(vec![0; 5]); // varints are at most 5 bytes
         write_varint(*i, &mut cursor)?;

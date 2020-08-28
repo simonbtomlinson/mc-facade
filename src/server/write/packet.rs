@@ -1,16 +1,18 @@
 use super::atom;
+use crate::error::Error;
+use std::convert::TryInto;
 use std::io::Write;
 use tokio::io::AsyncWriteExt;
-use std::convert::TryInto;
-use crate::error::Error;
 
 pub trait Packet {
     const ID: i32;
     fn write_to(&self, sink: &mut impl Write) -> Result<(), Error>;
 }
 
-
-pub async fn write<P : Packet, W: AsyncWriteExt + Unpin>(packet: &P, dest: &mut W) -> Result<(), Error> {
+pub async fn write<P: Packet, W: AsyncWriteExt + Unpin>(
+    packet: &P,
+    dest: &mut W,
+) -> Result<(), Error> {
     let mut buf = vec![];
     atom::write_varint(P::ID, &mut buf)?; // Every packet has an ID so write it for the packet
     packet.write_to(&mut buf)?;
@@ -44,7 +46,7 @@ pub struct HandshakeResponse {
     pub protocol: i32,
     pub max_players: u32,
     pub online_players: u32,
-    pub description: String
+    pub description: String,
 }
 
 impl Packet for HandshakeResponse {
@@ -52,7 +54,8 @@ impl Packet for HandshakeResponse {
     fn write_to(&self, sink: &mut impl Write) -> Result<(), Error> {
         // This is the only place I need to make json so I don't really need something as
         // heavyweight as serde for this.
-        let json = format!(r#"{{
+        let json = format!(
+            r#"{{
             "version": {{
                 "name": "{version_name}",
                 "protocol": {protocol}
@@ -66,21 +69,20 @@ impl Packet for HandshakeResponse {
                 "text": "{description}"
             }}
         }}"#,
-                version_name=self.version_name,
-                protocol=self.protocol,
-                max_players=self.max_players,
-                online_players=self.online_players,
-                description=self.description
+            version_name = self.version_name,
+            protocol = self.protocol,
+            max_players = self.max_players,
+            online_players = self.online_players,
+            description = self.description
         );
         atom::write_string(&json, sink)?;
         Ok(())
     }
 }
 
-
 #[derive(Debug, Eq, PartialEq)]
 pub struct Pong {
-    pub payload: i64
+    pub payload: i64,
 }
 
 impl Packet for Pong {
@@ -93,13 +95,13 @@ impl Packet for Pong {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct LoginDisconnect<'a> {
-    pub reason: &'a str
+    pub reason: &'a str,
 }
 
 impl<'a> Packet for LoginDisconnect<'a> {
     const ID: i32 = 0x00;
     fn write_to(&self, sink: &mut impl Write) -> Result<(), Error> {
-        let json = format!(r#"{{ "text": "{reason}" }}"#, reason=self.reason);
+        let json = format!(r#"{{ "text": "{reason}" }}"#, reason = self.reason);
         atom::write_string(&json, sink)?;
         Ok(())
     }

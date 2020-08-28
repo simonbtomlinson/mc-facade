@@ -1,6 +1,6 @@
-use std::{u16, str, io::Read};
-use tokio::io::{AsyncReadExt};
 use crate::error::Error;
+use std::{io::Read, str, u16};
+use tokio::io::AsyncReadExt;
 /*
  * By "atom", I mean an individual part of a minecraft packet, such as an int, varint, or string.
  */
@@ -10,7 +10,7 @@ use crate::error::Error;
  * before parsing it, but we need to async read the number at the start of each packet that tells
  * us how long it is before we can read it into a byte buffer
  */
-pub async fn read_varint_async<S : AsyncReadExt + Unpin>(source: &mut S) -> Result<i32, Error> {
+pub async fn read_varint_async<S: AsyncReadExt + Unpin>(source: &mut S) -> Result<i32, Error> {
     let mut num_read: u64 = 0;
     let mut result: i32 = 0;
     let mut buf = [0; 1]; // 1 byte at a time
@@ -29,7 +29,6 @@ pub async fn read_varint_async<S : AsyncReadExt + Unpin>(source: &mut S) -> Resu
     }
     Ok(result)
 }
-
 
 pub fn read_varint(source: &mut impl Read) -> Result<i32, Error> {
     let mut num_read: u64 = 0;
@@ -60,7 +59,7 @@ fn cases() -> Vec<VarIntTestCase> {
         VarIntTestCase(0, vec![0x00]),
         VarIntTestCase(1, vec![0x01]),
         VarIntTestCase(255, vec![0xff, 0x01]),
-        VarIntTestCase(2147483647, vec![0xff, 0xff, 0xff, 0xff, 0x07])
+        VarIntTestCase(2147483647, vec![0xff, 0xff, 0xff, 0xff, 0x07]),
     ]
 }
 
@@ -82,8 +81,6 @@ fn test_read_varint() -> Result<(), Error> {
     }
     Ok(())
 }
-
-
 
 pub fn read_string(source: &mut impl Read) -> Result<String, Error> {
     let size = read_varint(source)? as usize;
