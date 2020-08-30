@@ -9,14 +9,12 @@ mod error;
 mod rcon;
 mod server;
 mod util;
+mod gcloud;
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    env_logger::init();
-    info!("Starting");
-    let addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "127.0.0.1:25565".to_string());
-
-    run_fake_server(&addr).await?;
+    for _i in 1..1000000 {
+        gcloud::double();
+    }
     Ok(())
 }
