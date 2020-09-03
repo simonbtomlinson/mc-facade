@@ -6,15 +6,12 @@ use std::env;
 extern crate log;
 
 mod error;
+mod gcloud;
 mod rcon;
 mod server;
 mod util;
-mod gcloud;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    for _i in 1..1000000 {
-        gcloud::double();
-    }
     Ok(())
 }

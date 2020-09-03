@@ -109,9 +109,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_bad_password_login() -> Result<(), Error> {
-         let mut conn = fake_connection();
-        let login_response =
-            Packet::new(-1, PacketType::Login, "".into())?;
+        let mut conn = fake_connection();
+        let login_response = Packet::new(-1, PacketType::Login, "".into())?;
         write(&login_response, &mut conn.stream.input).await?;
         conn.stream.input.set_position(0);
         let login_result = conn.login("password".into()).await;
