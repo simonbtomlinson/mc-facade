@@ -94,7 +94,7 @@ mod tests {
         pin::Pin,
         task::{Context, Poll},
     };
-    use tokio::io::{AsyncRead, AsyncWrite};
+    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
     #[tokio::test]
     async fn test_successful_login() -> Result<(), Error> {
@@ -148,8 +148,8 @@ mod tests {
         fn poll_read(
             self: Pin<&mut Self>,
             cx: &mut Context<'_>,
-            buf: &mut [u8],
-        ) -> Poll<std::io::Result<usize>> {
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
             self.project().input.poll_read(cx, buf)
         }
     }

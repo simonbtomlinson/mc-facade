@@ -52,12 +52,12 @@ pub fn race<U: Future, V: Future>(left: U, right: V) -> RaceFuture<U, V> {
 mod tests {
     use super::*;
     use std::time::Duration;
-    use tokio::time::delay_for;
+    use tokio::time::sleep;
 
     #[tokio::test]
     async fn test_race_left() {
-        let left = delay_for(Duration::from_millis(5));
-        let right = delay_for(Duration::from_millis(10));
+        let left = sleep(Duration::from_millis(5));
+        let right = sleep(Duration::from_millis(10));
         let result = race(left, right).await;
         match result {
             RaceResult::Left(_) => (),
