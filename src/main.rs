@@ -6,7 +6,6 @@ use std::env;
 extern crate log;
 
 mod error;
-mod gcloud;
 mod rcon;
 mod server;
 mod util;
